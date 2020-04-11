@@ -1,0 +1,16 @@
+{
+  "name": "node-red-contrib-holiday",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "Francis Rath",
+  "license": "MIT",
+  "node-red": {
+    "nodes": {
+      "holiday": "holiday.js"
+    }
+  },
+  "dependencies": {
+    "date-holidays": "^1.4.14"
+  }
+}
