@@ -1,8 +1,7 @@
 {
   "name": "node-red-contrib-holiday",
-  "version": "1.1.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.2.0",
+  "description": "A Node-RED node that routes a message depending on whether the given date is a public holiday or a weekend, for 200+ countries.",
   "repository": {
     "type": "git",
     "url": "https://github.com/francisrath/node-red-contrib-holiday.git"
@@ -10,7 +9,13 @@
   "author": "Francis Rath",
   "license": "MIT",
   "keywords": [
-    "node-red"
+    "node-red",
+    "holiday",
+    "holidays",
+    "weekend",
+    "public holiday",
+    "bank holiday",
+    "calendar"
   ],
   "files": [
     "holiday.js",
