@@ -9,13 +9,18 @@
   },
   "author": "Francis Rath",
   "license": "MIT",
-  "keywords": [ "node-red" ],
+  "keywords": [
+    "node-red"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
   "node-red": {
     "nodes": {
       "holiday": "holiday.js"
     }
   },
   "dependencies": {
-    "date-holidays": "^1.4.14"
+    "date-holidays": "^3.34.1"
   }
 }
