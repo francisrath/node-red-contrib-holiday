@@ -7,6 +7,7 @@
             country: { value: "", required: true },
             state: { value: "" },
             region: { value: "" },
+            timezone: { value: "" },
             languages: { value: "" },
             typePublic: { value: true },
             typeBank: { value: true },
@@ -64,6 +65,11 @@
     <hr />
 
     <div class="form-row">
+        <label for="node-input-timezone">Timezone</label>
+        <input type="text" id="node-input-timezone" placeholder="Defaults to the country's own timezone">
+    </div>
+
+    <div class="form-row">
         <label for="node-input-languages">Languages</label>
         <input type="text" id="node-input-languages" placeholder="Languages">
     </div>
@@ -88,10 +94,14 @@
         <input type="checkbox" id="node-input-typeObservance" style="display:inline-block; width:15px; vertical-align:baseline;">
         <label for="node-input-typeObservance" class="wide">Observances</label>
     </div>
-    <div class="form-row">
+    <div class="form-row" style="margin-bottom: 0">
         <label for="node-input-types">&nbsp;</label>
         <input type="checkbox" id="node-input-typeOptional" style="display:inline-block; width:15px; vertical-align:baseline;">
         <label for="node-input-typeOptional" class="wide">Optional holidays</label>
+    </div>
+    <div class="form-row">
+        <label>&nbsp;</label>
+        <span class="form-tips" style="display:inline-block; width:60%">Selecting none is the same as selecting all.</span>
     </div>
 
     <div class="form-row weekend-row" id="weekend-row">
@@ -119,7 +129,46 @@
 </script>
 
 <script type="text/html" data-help-name="holiday">
-    <p>A node that will tell you if a given time falls within a holiday or a weekend.</p>
+    <p>Tells you whether a given time falls on a holiday or a weekend, using the
+       <a href="https://github.com/commenthol/date-holidays" target="_blank">date-holidays</a> database.</p>
+
+    <h3>Input</h3>
+    <dl class="message-properties">
+        <dt>payload<span class="property-type">date | number | string</span></dt>
+        <dd>The date to check &mdash; <b>not</b> the current time. An inject node's
+            timestamp works as-is.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <li>Holiday or weekend
+            <dl class="message-properties">
+                <dt>holiday<span class="property-type">object</span></dt>
+                <dd>The match, with <code>name</code>, <code>type</code> and the start/end of the day.
+                    Only set on an actual holiday.</dd>
+                <dt>holidays<span class="property-type">array</span></dt>
+                <dd>Every match for that date. Some dates are two holidays at once &mdash;
+                    19 June in Texas is both Juneteenth and Emancipation Day.</dd>
+                <dt>weekend<span class="property-type">boolean</span></dt>
+                <dd>Set to <code>true</code> when the day is one of the days ticked as weekend.</dd>
+            </dl>
+        </li>
+        <li>Neither
+            <dl class="message-properties">
+                <dd>The message passes through untouched.</dd>
+            </dl>
+        </li>
+    </ol>
+
+    <h3>Details</h3>
+    <p>Leaving <b>every</b> holiday type unticked is the same as ticking them all &mdash; that is
+       how the underlying library behaves. To match weekends only, untick every type and pick a
+       country with no holidays you care about, or filter downstream on <code>msg.holiday</code>.</p>
+    <p><b>Timezone</b> defaults to the country's own, which is usually what you want: it decides
+       both which day a holiday falls on and which day counts as the weekend. Set it explicitly if
+       your Node-RED runs somewhere other than the country you're asking about.</p>
+    <p>A payload that isn't a date, or an unknown country or timezone, raises an error you can
+       catch with a catch node rather than quietly reporting "not a holiday".</p>
 </script>
 
 <style>
