@@ -3,16 +3,35 @@ const assert = require('node:assert');
 
 const holidayNode = require('../holiday.js');
 
-// Minimal stand-in for the Node-RED runtime. Builds a node, feeds it the
-// payloads, and reports what came back out.
-function build(config) {
-    var node = { sent: null, status: null, errors: [] };
+// Minimal stand-in for the Node-RED runtime: enough of it to register a node
+// type and an admin endpoint.
+function runtime() {
     var RED = {
         nodes: {
             createNode: function () { },
             registerType: function (_, ctor) { RED.ctor = ctor; }
-        }
+        },
+        auth: { needsPermission: function () { } },
+        httpAdmin: { get: function (_path, _perm, handler) { RED.route = handler; } }
     };
+    return RED;
+}
+
+// Calls the editor's /holiday/places endpoint and hands back the JSON body.
+function places(query) {
+    var RED = runtime();
+    holidayNode(RED);
+
+    var body;
+    RED.route({ query: query }, { json: function (b) { body = b; } });
+    return body;
+}
+
+// Minimal stand-in for the Node-RED runtime. Builds a node, feeds it the
+// payloads, and reports what came back out.
+function build(config) {
+    var node = { sent: null, status: null, errors: [] };
+    var RED = runtime();
     holidayNode(RED);
 
     node.on = function (_, handler) { node.handler = handler; };
@@ -132,4 +151,30 @@ test('status shows what matched', () => {
     assert.equal(node.status.last.text, 'weekend');
     node.input(utc(2025, 3, 4));
     assert.deepEqual(node.status.last, {});
+});
+
+test('the editor is offered every country, named in English', () => {
+    const countries = places({});
+    assert.ok(Object.keys(countries).length > 100);
+    assert.equal(countries.US, 'United States of America');
+    assert.equal(countries.DE, 'Germany'); // not "Deutschland"
+});
+
+test('a country with states is offered them', () => {
+    const states = places({ country: 'US' });
+    assert.equal(states.TX, 'Texas');
+});
+
+test('a country without states is offered an empty list, not undefined', () => {
+    assert.deepEqual(places({ country: 'NO' }), {});
+});
+
+test('a state with regions is offered them', () => {
+    const regions = places({ country: 'DE', state: 'BY' });
+    assert.ok(Object.keys(regions).length > 0);
+});
+
+test('an unknown country is an empty list rather than an error', () => {
+    assert.deepEqual(places({ country: 'ZZ' }), {});
+    assert.deepEqual(places({ country: 'ZZ', state: 'YY' }), {});
 });

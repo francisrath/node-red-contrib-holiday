@@ -6,6 +6,8 @@ This is my first node red contribution. Pull requests are welcome if you have an
 
 This node uses the [date-holidays](https://www.npmjs.com/package/date-holidays) npm package to look up which days are holidays. 
 
+**Country**, **State** and **Region** are dropdowns, filled from the holiday database itself, so you pick a country by name instead of guessing its code. State narrows to the country you picked, region to the state. If the editor can't reach the runtime the fields fall back to plain text boxes you type the codes into, as they were before.
+
 You can easily select which types of holidays to include, and also add weekends or any days of the week to include. Leaving *every* holiday type unticked is the same as ticking them all — that's how the underlying library behaves.
 
 **msg.payload** is the date to check — not the current date. Send it a timestamp (an inject node's timestamp works as-is).
