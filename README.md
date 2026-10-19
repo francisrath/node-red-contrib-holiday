@@ -1,5 +1,7 @@
 # node-red-contrib-holiday
 
+[![npm](https://img.shields.io/npm/v/node-red-contrib-holiday)](https://www.npmjs.com/package/node-red-contrib-holiday)
+
 This is my first node red contribution. Pull requests are welcome if you have any improvements! :ok_hand:
 
 This node uses the [date-holidays](https://www.npmjs.com/package/date-holidays) npm package to look up which days are holidays. 
