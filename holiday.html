@@ -45,6 +45,20 @@
                     .val(saved[id] || ''));
             }
 
+            // What a dropdown says when it has nothing to offer. Plenty of countries
+            // have no states, and most states have no regions.
+            var nothing = {
+                country: { waiting: '', none: 'No countries available' },
+                state: { waiting: 'Pick a country first', none: 'This country has no states' },
+                region: { waiting: 'Pick a state first', none: 'This state has no regions' }
+            };
+
+            // An empty dropdown looks broken when you open it onto a single blank
+            // row, so say why it's empty and don't let it be opened.
+            function offerNothing($field, label) {
+                $field.empty().append($('<option>').val('').text(label)).prop('disabled', true);
+            }
+
             // Fill one dropdown from the runtime. No params means there is nothing
             // to offer yet — no country picked, so no states to list.
             function fill(id, params, selected, next) {
@@ -54,14 +68,22 @@
                     return next && next();
 
                 if (!params) {
-                    $field.empty().append($('<option>').val(''));
+                    offerNothing($field, nothing[id].waiting);
                     return next && next();
                 }
 
                 $.getJSON('holiday/places', params).done(function (found) {
-                    $field.empty().append($('<option>').val(''));
+                    var codes = Object.keys(found);
 
-                    Object.keys(found).sort(function (a, b) {
+                    // nothing on offer, and no saved code that needs keeping
+                    if (!codes.length && !selected) {
+                        offerNothing($field, nothing[id].none);
+                        return next && next();
+                    }
+
+                    $field.prop('disabled', false).empty().append($('<option>').val(''));
+
+                    codes.sort(function (a, b) {
                         return found[a].localeCompare(found[b]);
                     }).forEach(function (code) {
                         $field.append($('<option>').val(code).text(found[code] + ' \u2014 ' + code));
