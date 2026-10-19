@@ -25,9 +25,103 @@
             return this.name || "holiday";
         },
         oneditprepare: function () {
+            var saved = { country: this.country, state: this.state, region: this.region };
+            var downstream = { country: ['state', 'region'], state: ['region'], region: [] };
+
             $("#weekend-row input[type=checkbox]").removeAttr("checked");
             this.weekend.split(",").forEach(function (v) {
                 $("#weekend-row [value=" + v + "]").prop("checked", true);
+            });
+
+            // Back to the plain text box this field used to be. A dropdown that
+            // can't be filled is worse than one you type the code into yourself.
+            function asText(id) {
+                var $field = $('#node-input-' + id);
+                if (!$field.is('select'))
+                    return;
+
+                $field.replaceWith($('<input type="text">')
+                    .attr({ id: 'node-input-' + id, placeholder: $field.attr('placeholder') })
+                    .val(saved[id] || ''));
+            }
+
+            // What a dropdown says when it has nothing to offer. Plenty of countries
+            // have no states, and most states have no regions.
+            var nothing = {
+                country: { waiting: '', none: 'No countries available' },
+                state: { waiting: 'Pick a country first', none: 'This country has no states' },
+                region: { waiting: 'Pick a state first', none: 'This state has no regions' }
+            };
+
+            // An empty dropdown looks broken when you open it onto a single blank
+            // row, so say why it's empty and don't let it be opened.
+            function offerNothing($field, label) {
+                $field.empty().append($('<option>').val('').text(label)).prop('disabled', true);
+            }
+
+            // Fill one dropdown from the runtime. No params means there is nothing
+            // to offer yet — no country picked, so no states to list.
+            function fill(id, params, selected, next) {
+                var $field = $('#node-input-' + id);
+
+                if (!$field.is('select'))
+                    return next && next();
+
+                if (!params) {
+                    offerNothing($field, nothing[id].waiting);
+                    return next && next();
+                }
+
+                $.getJSON('holiday/places', params).done(function (found) {
+                    var codes = Object.keys(found);
+
+                    // nothing on offer, and no saved code that needs keeping
+                    if (!codes.length && !selected) {
+                        offerNothing($field, nothing[id].none);
+                        return next && next();
+                    }
+
+                    $field.prop('disabled', false).empty().append($('<option>').val(''));
+
+                    codes.sort(function (a, b) {
+                        return found[a].localeCompare(found[b]);
+                    }).forEach(function (code) {
+                        $field.append($('<option>').val(code).text(found[code] + ' \u2014 ' + code));
+                    });
+
+                    // A code the database no longer lists still belongs in the list,
+                    // so an existing flow keeps showing what it is actually set to.
+                    if (selected && !found[selected])
+                        $field.append($('<option>').val(selected).text(selected));
+
+                    $field.val(selected || '');
+
+                    if (next)
+                        next();
+                }).fail(function () {
+                    asText(id);
+                    downstream[id].forEach(asText);
+                });
+            }
+
+            var states = function (country) { return country ? { country: country } : null; };
+            var regions = function (country, state) { return country && state ? { country: country, state: state } : null; };
+
+            fill('country', {}, saved.country, function () {
+                fill('state', states(saved.country), saved.state, function () {
+                    fill('region', regions(saved.country, saved.state), saved.region);
+                });
+
+                // Picking a country rules out whatever state was selected under the old one.
+                $('#node-input-country').on('change', function () {
+                    fill('state', states($(this).val()), '', function () {
+                        fill('region', null, '');
+                    });
+                });
+
+                $('#node-input-state').on('change', function () {
+                    fill('region', regions($('#node-input-country').val(), $(this).val()), '');
+                });
             });
         },
         oneditsave: function () {
@@ -51,15 +145,15 @@
 
     <div class="form-row">
         <label for="node-input-country">Country</label>
-        <input type="text" id="node-input-country" placeholder="Country (required)">
+        <select id="node-input-country" placeholder="Country (required)"></select>
     </div>
     <div class="form-row">
         <label for="node-input-state">State</label>
-        <input type="text" id="node-input-state" placeholder="State">
+        <select id="node-input-state" placeholder="State"></select>
     </div>
     <div class="form-row">
         <label for="node-input-region">Region</label>
-        <input type="text" id="node-input-region" placeholder="Region">
+        <select id="node-input-region" placeholder="Region"></select>
     </div>
 
     <hr />
@@ -124,7 +218,8 @@
     </div>
 
     <div class="form-tips">
-        For details about available countries, regions, states and languages, see <a href="https://github.com/commenthol/date-holidays" target="_blank">https://github.com/commenthol/date-holidays</a>
+        State and region are only offered where the database has them. For details about
+        available countries, regions, states and languages, see <a href="https://github.com/commenthol/date-holidays" target="_blank">https://github.com/commenthol/date-holidays</a>
     </div>
 </script>
 
@@ -161,6 +256,10 @@
     </ol>
 
     <h3>Details</h3>
+    <p><b>Country</b>, <b>State</b> and <b>Region</b> are filled from the holiday database, so
+       you pick a country by name rather than remembering its code. State lists only what the
+       chosen country has, region only what the chosen state has &mdash; many have neither.
+       A flow set to a code the database has since dropped keeps showing that code.</p>
     <p>Leaving <b>every</b> holiday type unticked is the same as ticking them all &mdash; that is
        how the underlying library behaves. To match weekends only, untick every type and pick a
        country with no holidays you care about, or filter downstream on <code>msg.holiday</code>.</p>

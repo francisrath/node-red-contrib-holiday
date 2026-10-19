@@ -3,6 +3,24 @@ module.exports = function (RED) {
 
     var WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+    // One instance just for the editor's dropdowns. The lookup methods don't
+    // care how it was initialised, so there's nothing to configure here.
+    var places = new Holidays();
+
+    // What the editor offers in its Country / State / Region dropdowns:
+    // no country yields the countries, a country its states, a state its regions.
+    // date-holidays answers undefined where there is nothing to offer, and the
+    // editor wants an empty list rather than an error.
+    RED.httpAdmin.get('/holiday/places', RED.auth.needsPermission('holiday.read'), function (req, res) {
+        var country = req.query.country;
+        var state = req.query.state;
+        var found = !country ? places.getCountries('en')
+            : !state ? places.getStates(country, 'en')
+                : places.getRegions(country, state, 'en');
+
+        res.json(found || {});
+    });
+
     function HolidayNode(config) {
         RED.nodes.createNode(this, config);
         var node = this;
